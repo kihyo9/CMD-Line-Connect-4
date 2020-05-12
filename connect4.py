@@ -9,23 +9,21 @@ colNum = 7
 
 game_board = [['_' for _ in range(colNum)] for _ in range(rowNum)]
 
-def main1():
+def main1(level):
 
-	# play
+	# who goes first?
 	turn = 0
 	pieces = ['x','o']
-
 	human = flipcoin()
-
 	if human == 1:
 		print("Computer moves first!")
 	else:
 		print("Human moves first!")
 	time.sleep(1.5)
 
+	# game
 	while turn < 42:
-		player = (turn % 2)	
-
+		player = (turn % 2)
 		printboard(game_board)	
 
 		# take input
@@ -37,11 +35,9 @@ def main1():
 				if col not in ['1','2','3','4','5','6','7']:
 					print('Invalid input!')
 					continue
-
 				if not updateboard(game_board, int(col),pieces[player]):
 					print('Column == full!')
 					continue
-
 				validInput = True
 		else:
 			# fake thinking...
@@ -54,9 +50,16 @@ def main1():
 			stdout.write('\n')
 
 			# computer AI choice
-			# choice = connect4AI()
-			# choice = connect4AI2(game_board, pieces[player],pieces[player-1],block=True)
-			choice = connect4AI3_helper(copy.deepcopy(game_board), pieces[player],pieces[player-1])
+			choice = 0
+			if level == '1':
+				choice = connect4AI()
+			elif level == '2':
+				choice = connect4AI2(game_board, pieces[player],pieces[player-1],block=True)
+			elif level == '3':
+				analysis_depth = 5
+				strat = 'net'
+				start = 1 # a change for 'start' requires changing in the connect4AI3() function below
+				choice = connect4AI3_helper(copy.deepcopy(game_board), pieces[player],pieces[player-1], analysis_depth, strat, start)
 			print('Computer chose column ' + str(choice))
 			updateboard(game_board, choice,pieces[player])
 
@@ -72,10 +75,8 @@ def main1():
 			winner = 'Human' if human == 1 else 'Computer'
 			print('\n\n' + winner + ' wins!')
 			break
-
 		if turn == 41:
 			print('\n\nBoard == full... draw!')
-
 		turn += 1
 
 	printboard(game_board)
@@ -141,8 +142,6 @@ def printboard(board):
 	for i in range(colNum):
 		print(str(i+1),end='|')
 	print('')
-
-	
 
 def updateboard(board, column, piece):
 	for row in board:
@@ -232,7 +231,14 @@ def deletePieceInColumn(board, column):
 
 
 def clearboard():
-	game_board = [['_' for _ in range(colNum)] for _ in range(rowNum)]
+	global game_board 
+	game_board =\
+	[['_','_','_','_','_','_','_'],\
+	['_','_','_','_','_','_','_'],\
+	['_','_','_','_','_','_','_'],\
+	['_','_','_','_','_','_','_'],\
+	['_','_','_','_','_','_','_'],\
+	['_','_','_','_','_','_','_']]
 
 def flipcoin():
 	print('\nFlipping coin...')
@@ -332,63 +338,56 @@ def connect4AI2(board, piece, piece2, block=False):
 	return random.choice(bag)
 
 # input a deepcopy of the original game_board state
-def connect4AI3(board, piece, piece2, analysis_depth = 5, start = 0):
+def connect4AI3(board, piece, piece2, analysis_depth, start):
 	# winning p
 	p = [0 for _ in range(colNum)]
 
 	for i in range(colNum):
-		# play/== column full
+		# play/is column full
 		if not updateboard(board, i+1, piece):
 			p[i] = -1
-		# == this move a win
+			continue
+		# this move a win
 		elif evaluateboard(board) == piece:
-			if (start % 2) == 0:
-				p[i] = [0., 1.]
-			else:
+			if (start % 2) == 1: # change if start default is changed
 				p[i] = [1., 0.]
-		elif (start % 2) == 0:
+			else:
+				p[i] = [0., 1.]
+		else:
 			if start < analysis_depth:
+				# switch pieces so subsequent recursion stacks switch sides for the opponent's move
 				p[i] = connect4AI3(board, piece2, piece, analysis_depth, start+1)
 			else:
 				p[i] = [0., 0.]
-		else:
-			if start < analysis_depth:
-				p[i] = connect4AI3(board, piece, piece2, analysis_depth, start+1)
-			else:
-				p[i] = [0., 0.]			
 
-
-
-		# delete my first move
+		# delete simulated move
 		deletePieceInColumn(board, i+1)
 
-	# aggregate results
-	combined = [0., 0.]
-	count = 0
+	# aggregate results, but not for the first stack
+	if start > 1: # change if start default is changed
+		combined = [0., 0.]
+		count = 0
 
-	for prob in p:
-		if prob != -1:
-			count += 1
-			combined[0] += prob[0]
-			combined[1] += prob[1]
+		for prob in p:
+			if prob != -1:
+				count += 1
+				combined[0] += prob[0]
+				combined[1] += prob[1]
 
-	for i in range(2):
-		combined[i] /= count
+		for i in range(2):
+			combined[i] /= count
 
-	return combined
+		return combined
+	else:
+		return p
 
-def connect4AI3_helper(board, piece, piece2, analysis_depth = 5, strat = 'win'):
-	probs = []
-	for i in range(colNum):
-		updateboard(board, i+1, piece)
-		probs.append(connect4AI3(board, piece, piece2, analysis_depth, 0))
-		deletePieceInColumn(board, i+1)
-
-	# can choose to win, or not lose
+def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
+	probs = connect4AI3(board, piece, piece2, analysis_depth, start)
 
 	# win
 	choice = []
-	if start = 'win':
+	choice2 = []
+	if strat == 'win':
 		value = 0.
 		for i in range(colNum):
 			if probs[i][0] > value:
@@ -397,7 +396,16 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth = 5, strat = 'win'):
 				choice.append(i+1)
 			elif probs[i][0] == value:
 				choice.append(i+1)
-	elif start == 'not lose':
+		value = 1
+		for c in choice:
+			if probs[c-1][1] < value:
+				value = probs[c-1][1]
+				choice2 = []
+				choice2.append(c)
+			elif probs[i][1] == value:
+				choice2.append(c)					
+	# not lose
+	elif strat == 'not lose':
 		value = 1.
 		for i in range(colNum):
 			if probs[i][1] < value:
@@ -405,10 +413,43 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth = 5, strat = 'win'):
 				choice = []
 				choice.append(i+1)
 			elif probs[i][1] == value:
-				choice.append(i+1)		
+				choice.append(i+1)
+		value = 0
+		for c in choice:
+			if probs[c-1][0] > value:
+				value = probs[c-1][0]
+				choice2 = []
+				choice2.append(c)
+			elif probs[i][0] == value:
+				choice2.append(c)
+	# net percentage
+	elif strat == 'net':
+		win_weight = 1.
+		loss_weight = 1.
+		value = -2.
+		for i in range(colNum):
+			if win_weight*probs[i][0] - loss_weight*probs[i][1] > value:
+				value = win_weight*probs[i][0] - loss_weight*probs[i][1]
+				choice2 = []
+				choice2.append(i+1)
+			elif probs[i][0] == value:
+				choice2.append(i+1)
 
+	# 4 is the most likely to be played, with probabilities decreasing as the number's distance from 4 increases
+	choice3 = []
+	for i in range(colNum):
+		if (i+1) in choice2:
+			for _ in range(4-abs((i+1)-4)):
+				choice3.append(i+1)
 
-	return random.choice(choice)
+	# printprobs(probs) # for seeing what the computer think
+
+	return random.choice(choice3)
+
+def printprobs(probs):
+	for i, move in enumerate(probs):
+		print("{}. {:0.3f}/{:0.3f} ".format(i+1, move[0], move[1]),end='')
+	print('')
 
 
 if __name__ == '__main__':
@@ -425,7 +466,10 @@ if __name__ == '__main__':
 			p = input('Invalid input, enter again: ')
 
 		if p == '1':
-			main1()
+			level = input('Enter computer AI level (1, 2 or 3): ')
+			while(level not in ['1','2','3']):
+				level = input('Invalid input, enter again: ')			
+			main1(level)
 		elif p == '2':
 			main2()
 		else:
