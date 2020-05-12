@@ -432,7 +432,7 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 				value = win_weight*probs[i][0] - loss_weight*probs[i][1]
 				choice2 = []
 				choice2.append(i+1)
-			elif probs[i][0] == value:
+			elif win_weight*probs[i][0] - loss_weight*probs[i][1] == value:
 				choice2.append(i+1)
 
 	# 4 is the most likely to be played, with probabilities decreasing as the number's distance from 4 increases
