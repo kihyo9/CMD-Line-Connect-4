@@ -36,7 +36,7 @@ def main1(level):
 					print('Invalid input!')
 					continue
 				if not updateboard(game_board, int(col),pieces[player]):
-					print('Column == full!')
+					print('Column is full!')
 					continue
 				validInput = True
 		else:
@@ -168,6 +168,7 @@ def evaluateboard(board):
 			# add to sets
 			if piece == '_':
 				count = 0
+				prevPiece = piece
 				continue
 			elif piece == 'x':
 				rowsx[i].add(j)
@@ -243,7 +244,7 @@ def clearboard():
 def flipcoin():
 	print('\nFlipping coin...')
 	c = ['\\','|','/','–']
-	for _ in range(2):
+	for _ in range(4):
 		for char in c:
 			stdout.write('\r' + char)
 			stdout.flush()
@@ -390,6 +391,8 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 	if strat == 'win':
 		value = 0.
 		for i in range(colNum):
+			if probs[i] == -1:
+				continue
 			if probs[i][0] > value:
 				value = probs[i][0]
 				choice = []
@@ -398,6 +401,8 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 				choice.append(i+1)
 		value = 1
 		for c in choice:
+			if probs[c-1] == -1:
+				continue
 			if probs[c-1][1] < value:
 				value = probs[c-1][1]
 				choice2 = []
@@ -408,6 +413,8 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 	elif strat == 'not lose':
 		value = 1.
 		for i in range(colNum):
+			if probs[i] == -1:
+				continue
 			if probs[i][1] < value:
 				value = probs[i][1]
 				choice = []
@@ -416,6 +423,8 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 				choice.append(i+1)
 		value = 0
 		for c in choice:
+			if probs[c-1] == -1:
+				continue
 			if probs[c-1][0] > value:
 				value = probs[c-1][0]
 				choice2 = []
@@ -428,6 +437,8 @@ def connect4AI3_helper(board, piece, piece2, analysis_depth, strat, start):
 		loss_weight = 1.
 		value = -2.
 		for i in range(colNum):
+			if probs[i] == -1:
+				continue
 			if win_weight*probs[i][0] - loss_weight*probs[i][1] > value:
 				value = win_weight*probs[i][0] - loss_weight*probs[i][1]
 				choice2 = []
